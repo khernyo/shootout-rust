@@ -1,7 +1,7 @@
 
-fn main(args: ~[str]) {
+fn main() {
 
-	let ALU: str = "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG\
+	let ALU: &str = "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG\
 						 GAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGA\
 						 CCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAAT\
 						 ACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCA\
@@ -9,7 +9,7 @@ fn main(args: ~[str]) {
 						 AGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCC\
 						 AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA";
 
-	let IUB: ~float_prob_freq = ~float_prob_freq(
+	let IUB: ~float_prob_freq = ~float_prob_freq::new(
 				@['a',  'c',  'g',  't',
 	              'B',  'D',  'H',  'K',
 	              'M',  'N',  'R',  'S',
@@ -19,13 +19,13 @@ fn main(args: ~[str]) {
 	              0.02f32, 0.02f32, 0.02f32, 0.02f32,
 	              0.02f32, 0.02f32, 0.02f32], 42);
 
-	let n = if args.len() > 1 { uint::from_str(args[1]).get() } else { 1000u };
+	let n = if os::args().len() > 1 { uint::from_str(os::args()[1]).get() } else { 1000u };
 
 	let out = io::stdout();
 	make_repeat_fasta("ONE", "Homo sapiens alu", ALU, n * 2, out);
 	make_random_fasta("TWO", "IUB ambiguity codes", IUB, n * 3, out);
 
-	let homo_sapiens: ~float_prob_freq = ~float_prob_freq(
+	let homo_sapiens: ~float_prob_freq = ~float_prob_freq::new(
 				@['a', 'c', 'g', 't'],
 				~[0.3029549426680f32,
 	              0.1979883004921f32,
@@ -42,15 +42,15 @@ const IC: int = 29573;
 const line_length: uint = 60;
 const buffer_size: uint = (line_length + 1) * 1024;
 
-fn make_random_fasta(id: str, desc: str, fpf: ~float_prob_freq, n_chars: uint, writer: io::writer) {
+fn make_random_fasta(id: &str, desc: &str, fpf: &float_prob_freq, n_chars: uint, writer: io::Writer) {
 	let buffer = vec::to_mut(vec::from_elem(buffer_size, 0u8));
 	if buffer.len() % (line_length + 1) != 0 {
 		log(error, "buffer size must be a multiple of line length (including line break)");
 		fail;
 	}
 
-	let desc_str = #fmt(">%s %s\n", id, desc);
-	writer.write(str::bytes(desc_str));
+	let desc_str = fmt!(">%s %s\n", id, desc);
+	writer.write(str::to_bytes(desc_str));
 
 	let mut buffer_index = 0;
 	let mut n = n_chars;
@@ -69,8 +69,8 @@ fn make_random_fasta(id: str, desc: str, fpf: ~float_prob_freq, n_chars: uint, w
 	writer.write(vec::view(buffer, 0, buffer_index));
 }
 
-fn make_repeat_fasta(id: str, desc: str, alu: str, n_chars: uint, writer: io::writer) {
-	let alu_bytes = str::bytes(alu);
+fn make_repeat_fasta(id: &str, desc: &str, alu: &str, n_chars: uint, writer: io::Writer) {
+	let alu_bytes = str::to_bytes(alu);
 	let mut alu_index = 0;
 
 	let buffer = vec::to_mut(vec::from_elem(buffer_size, 0u8));
@@ -79,8 +79,8 @@ fn make_repeat_fasta(id: str, desc: str, alu: str, n_chars: uint, writer: io::wr
 		fail;
 	}
 
-	let desc_str = #fmt(">%s %s\n", id, desc);
-	writer.write(str::bytes(desc_str));
+	let desc_str = fmt!(">%s %s\n", id, desc);
+	writer.write(str::to_bytes(desc_str));
 
 	let mut buffer_index = 0;
 	let mut n = n_chars;
@@ -110,22 +110,21 @@ fn make_repeat_fasta(id: str, desc: str, alu: str, n_chars: uint, writer: io::wr
 	writer.write(vec::view(buffer, 0, buffer_index));
 }
 
-class float_prob_freq {
-	let mut last: int;
-	priv {
-		let chars: @[char];
-		let probs: ~[mut f32];
+struct float_prob_freq {
+	mut last: int,
+	priv chars: @[char],
+	priv probs: ~[mut f32]
+}
+
+impl float_prob_freq {
+	static fn new(chars: @[char], probs: ~[f32], last: int) -> float_prob_freq {
+		let result = float_prob_freq { last: last, chars: chars, probs: vec::to_mut(copy probs) };
+		result.make_cumulative();
+
+		result
 	}
 
-	new(chars: @[char], probs: ~[f32], last: int) {
-		self.last = last;
-		self.chars = chars;
-		self.probs = vec::to_mut(copy probs);
-
-		self.make_cumulative();
-	}
-
-	fn make_cumulative() {
+	fn make_cumulative(&self) {
 		let mut cp = 0.0f64;
 		let mut i = 0;
 		while i < self.probs.len() {
@@ -135,7 +134,7 @@ class float_prob_freq {
 		}
 	}
 
-	fn select_random_into_buffer(buffer: ~[mut u8], buffer_index: uint, n_random: uint) -> uint {
+	fn select_random_into_buffer(&self, buffer: &[mut u8], buffer_index: uint, n_random: uint) -> uint {
 		let len = self.probs.len();
 
 		let mut bi = buffer_index;
@@ -163,7 +162,7 @@ class float_prob_freq {
 		bi
 	}
 
-	fn random(max: f32) -> f32 {
+	fn random(&self, max: f32) -> f32 {
 		let one_over_IM = 1f32 / (IM as f32);
 		self.last = (self.last * IA + IC) % IM;
 		max * (self.last as f32) * one_over_IM

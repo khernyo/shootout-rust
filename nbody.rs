@@ -1,38 +1,40 @@
-fn main(args: ~[str]) {
-	let n = int::from_str(args[1]).get();
+fn main() {
+	let n = int::from_str(os::args()[1]).get();
 
-	let bodies = n_body_system();
-	io::println(#fmt("%.9f", bodies.energy() as float));
+	let bodies = n_body_system::new();
+	io::println(fmt!("%.9f", bodies.energy() as float));
 	let mut i = 0;
 	while i < n {
 		bodies.advance(0.01f64);
 		i += 1;
 	}
-	io::println(#fmt("%.9f", bodies.energy() as float));
+	io::println(fmt!("%.9f", bodies.energy() as float));
 }
 
-class n_body_system {
-	priv {
-		let bodies: ~[@body];
-	}
+struct n_body_system {
+	priv bodies: ~[@body]
+}
 
-	new() {
-		self.bodies = ~[sun(), jupiter(), saturn(), uranus(), neptune()];
+impl n_body_system {
+	static fn new() -> n_body_system {
+		let result = n_body_system { bodies: ~[sun(), jupiter(), saturn(), uranus(), neptune()] };
 
 		let mut px = 0f64;
 		let mut py = 0f64;
 		let mut pz = 0f64;
 		let mut i = 0;
-		while i < self.bodies.len() {
-			px += self.bodies[i].vx * self.bodies[i].mass;
-			py += self.bodies[i].vy * self.bodies[i].mass;
-			pz += self.bodies[i].vz * self.bodies[i].mass;
+		while i < result.bodies.len() {
+			px += result.bodies[i].vx * result.bodies[i].mass;
+			py += result.bodies[i].vy * result.bodies[i].mass;
+			pz += result.bodies[i].vz * result.bodies[i].mass;
 			i += 1;
 		}
-		self.bodies[0].offsetMomentum(px, py, pz);
+		result.bodies[0].offsetMomentum(px, py, pz);
+
+		result
 	}
 
-	fn advance(dt: f64) {
+	fn advance(&self, dt: f64) {
 		let mut i = 0;
 		while i < self.bodies.len() {
 			let ibody = self.bodies[i];
@@ -71,7 +73,7 @@ class n_body_system {
 		}
 	}
 
-	fn energy() -> f64 {
+	fn energy(&self) -> f64 {
 		let mut e = 0f64;
 
 		let mut i = 0;
@@ -99,26 +101,22 @@ const pi: f64 = 3.141592653589793f64;
 const solar_mass: f64 = 4f64 * pi * pi;
 const days_per_year: f64 = 365.24f64;
 
-class body {
-	let mut x: f64;
-	let mut y: f64;
-	let mut z: f64;
-	let mut vx: f64;
-	let mut vy: f64;
-	let mut vz: f64;
-	let mass: f64;
+struct body {
+	mut x: f64,
+	mut y: f64,
+	mut z: f64,
+	mut vx: f64,
+	mut vy: f64,
+	mut vz: f64,
+	mass: f64
+}
 
-	new(x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, mass: f64) {
-		self.x = x;
-		self.y = y;
-		self.z = z;
-		self.vx = vx;
-		self.vy = vy;
-		self.vz = vz;
-		self.mass = mass;
+impl body {
+	static fn new(x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, mass: f64) -> body {
+		body { x: x, y: y, z: z, vx: vx, vy: vy, vz: vz, mass: mass }
 	}
 
-	fn offsetMomentum(px: f64, py: f64, pz: f64) {
+	fn offsetMomentum(&self, px: f64, py: f64, pz: f64) {
 		self.vx = -px / solar_mass;
 		self.vy = -py / solar_mass;
 		self.vz = -pz / solar_mass;
@@ -126,7 +124,7 @@ class body {
 }
 
 fn jupiter() -> @body {
-	@body(
+	@body::new(
 		4.84143144246472090e+00f64,
 		-1.16032004402742839e+00f64,
 		-1.03622044471123109e-01f64,
@@ -137,7 +135,7 @@ fn jupiter() -> @body {
 }
 
 fn saturn() -> @body {
-	@body(
+	@body::new(
 		8.34336671824457987e+00f64,
 		4.12479856412430479e+00f64,
 		-4.03523417114321381e-01f64,
@@ -148,7 +146,7 @@ fn saturn() -> @body {
 }
 
 fn uranus() -> @body {
-	@body(
+	@body::new(
 		1.28943695621391310e+01f64,
 		-1.51111514016986312e+01f64,
 		-2.23307578892655734e-01f64,
@@ -159,7 +157,7 @@ fn uranus() -> @body {
 }
 
 fn neptune() -> @body {
-	@body(
+	@body::new(
 		1.53796971148509165e+01f64,
 		-2.59193146099879641e+01f64,
 		1.79258772950371181e-01f64,
@@ -170,7 +168,7 @@ fn neptune() -> @body {
 }
 
 fn sun() -> @body {
-	@body(
+	@body::new(
 		0f64,
 		0f64,
 		0f64,
