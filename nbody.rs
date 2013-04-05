@@ -12,12 +12,12 @@ fn main() {
 }
 
 struct n_body_system {
-	priv bodies: ~[@body]
+	priv bodies: @[@mut body]
 }
 
 impl n_body_system {
-	static fn new() -> n_body_system {
-		let result = n_body_system { bodies: ~[sun(), jupiter(), saturn(), uranus(), neptune()] };
+	fn new() -> @mut n_body_system {
+		let result: @mut n_body_system = @mut n_body_system { bodies: @[sun(), jupiter(), saturn(), uranus(), neptune()] };
 
 		let mut px = 0f64;
 		let mut py = 0f64;
@@ -97,34 +97,34 @@ impl n_body_system {
 	}
 }
 
-const pi: f64 = 3.141592653589793f64;
-const solar_mass: f64 = 4f64 * pi * pi;
-const days_per_year: f64 = 365.24f64;
+static pi: f64 = 3.141592653589793f64;
+static solar_mass: f64 = 4f64 * pi * pi;
+static days_per_year: f64 = 365.24f64;
 
 struct body {
-	mut x: f64,
-	mut y: f64,
-	mut z: f64,
-	mut vx: f64,
-	mut vy: f64,
-	mut vz: f64,
+	x: f64,
+	y: f64,
+	z: f64,
+	vx: f64,
+	vy: f64,
+	vz: f64,
 	mass: f64
 }
 
 impl body {
-	static fn new(x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, mass: f64) -> body {
-		body { x: x, y: y, z: z, vx: vx, vy: vy, vz: vz, mass: mass }
+	fn new(x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64, mass: f64) -> @mut body {
+		@mut body { x: x, y: y, z: z, vx: vx, vy: vy, vz: vz, mass: mass }
 	}
 
-	fn offsetMomentum(&self, px: f64, py: f64, pz: f64) {
+	fn offsetMomentum(&mut self, px: f64, py: f64, pz: f64) {
 		self.vx = -px / solar_mass;
 		self.vy = -py / solar_mass;
 		self.vz = -pz / solar_mass;
 	}
 }
 
-fn jupiter() -> @body {
-	@body::new(
+fn jupiter() -> @mut body {
+	body::new(
 		4.84143144246472090e+00f64,
 		-1.16032004402742839e+00f64,
 		-1.03622044471123109e-01f64,
@@ -134,8 +134,8 @@ fn jupiter() -> @body {
 		9.54791938424326609e-04f64 * solar_mass)
 }
 
-fn saturn() -> @body {
-	@body::new(
+fn saturn() -> @mut body {
+	body::new(
 		8.34336671824457987e+00f64,
 		4.12479856412430479e+00f64,
 		-4.03523417114321381e-01f64,
@@ -145,8 +145,8 @@ fn saturn() -> @body {
 		2.85885980666130812e-04f64 * solar_mass)
 }
 
-fn uranus() -> @body {
-	@body::new(
+fn uranus() -> @mut body {
+	body::new(
 		1.28943695621391310e+01f64,
 		-1.51111514016986312e+01f64,
 		-2.23307578892655734e-01f64,
@@ -156,8 +156,8 @@ fn uranus() -> @body {
 		4.36624404335156298e-05f64 * solar_mass)
 }
 
-fn neptune() -> @body {
-	@body::new(
+fn neptune() -> @mut body {
+	body::new(
 		1.53796971148509165e+01f64,
 		-2.59193146099879641e+01f64,
 		1.79258772950371181e-01f64,
@@ -167,8 +167,8 @@ fn neptune() -> @body {
 		5.15138902046611451e-05f64 * solar_mass)
 }
 
-fn sun() -> @body {
-	@body::new(
+fn sun() -> @mut body {
+	body::new(
 		0f64,
 		0f64,
 		0f64,

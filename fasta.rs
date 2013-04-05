@@ -9,7 +9,7 @@ fn main() {
 						 AGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCC\
 						 AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA";
 
-	let IUB: ~float_prob_freq = ~float_prob_freq::new(
+	let IUB: @mut float_prob_freq = float_prob_freq::new(
 				@['a',  'c',  'g',  't',
 	              'B',  'D',  'H',  'K',
 	              'M',  'N',  'R',  'S',
@@ -25,7 +25,7 @@ fn main() {
 	make_repeat_fasta("ONE", "Homo sapiens alu", ALU, n * 2, out);
 	make_random_fasta("TWO", "IUB ambiguity codes", IUB, n * 3, out);
 
-	let homo_sapiens: ~float_prob_freq = ~float_prob_freq::new(
+	let homo_sapiens: @mut float_prob_freq = float_prob_freq::new(
 				@['a', 'c', 'g', 't'],
 				~[0.3029549426680f32,
 	              0.1979883004921f32,
@@ -35,18 +35,18 @@ fn main() {
 	out.flush();
 }
 
-const IM: int = 139968;
-const IA: int = 3877;
-const IC: int = 29573;
+static IM: int = 139968;
+static IA: int = 3877;
+static IC: int = 29573;
 
-const line_length: uint = 60;
-const buffer_size: uint = (line_length + 1) * 1024;
+static line_length: uint = 60;
+static buffer_size: uint = (line_length + 1) * 1024;
 
-fn make_random_fasta(id: &str, desc: &str, fpf: &float_prob_freq, n_chars: uint, writer: io::Writer) {
-	let buffer = vec::to_mut(vec::from_elem(buffer_size, 0u8));
+fn make_random_fasta(id: &str, desc: &str, fpf: &mut float_prob_freq, n_chars: uint, writer: @io::Writer) {
+	let mut buffer = vec::from_elem(buffer_size, 0u8);
 	if buffer.len() % (line_length + 1) != 0 {
-		log(error, "buffer size must be a multiple of line length (including line break)");
-		fail;
+		error!("buffer size must be a multiple of line length (including line break)");
+		fail!();
 	}
 
 	let desc_str = fmt!(">%s %s\n", id, desc);
@@ -66,17 +66,17 @@ fn make_random_fasta(id: &str, desc: &str, fpf: &float_prob_freq, n_chars: uint,
 		n -= chunk_size;
 	}
 
-	writer.write(vec::view(buffer, 0, buffer_index));
+	writer.write(vec::slice(buffer, 0, buffer_index));
 }
 
-fn make_repeat_fasta(id: &str, desc: &str, alu: &str, n_chars: uint, writer: io::Writer) {
+fn make_repeat_fasta(id: &str, desc: &str, alu: &str, n_chars: uint, writer: @io::Writer) {
 	let alu_bytes = str::to_bytes(alu);
 	let mut alu_index = 0;
 
-	let buffer = vec::to_mut(vec::from_elem(buffer_size, 0u8));
+	let mut buffer = vec::from_elem(buffer_size, 0u8);
 	if buffer.len() % (line_length + 1) != 0 {
-		log(error, "buffer size must be a multiple of line length (including line break)");
-		fail;
+		error!("buffer size must be a multiple of line length (including line break)");
+		fail!();
 	}
 
 	let desc_str = fmt!(">%s %s\n", id, desc);
@@ -107,24 +107,24 @@ fn make_repeat_fasta(id: &str, desc: &str, alu: &str, n_chars: uint, writer: io:
 		n -= chunk_size;
 	}
 
-	writer.write(vec::view(buffer, 0, buffer_index));
+	writer.write(vec::slice(buffer, 0, buffer_index));
 }
 
 struct float_prob_freq {
-	mut last: int,
+	last: int,
 	priv chars: @[char],
-	priv probs: ~[mut f32]
+	priv probs: ~[f32]
 }
 
 impl float_prob_freq {
-	static fn new(chars: @[char], probs: ~[f32], last: int) -> float_prob_freq {
-		let result = float_prob_freq { last: last, chars: chars, probs: vec::to_mut(copy probs) };
+	fn new(chars: @[char], probs: ~[f32], last: int) -> @mut float_prob_freq {
+		let mut result: @mut float_prob_freq = @mut float_prob_freq { last: last, chars: chars, probs: probs };
 		result.make_cumulative();
 
 		result
 	}
 
-	fn make_cumulative(&self) {
+	fn make_cumulative(&mut self) {
 		let mut cp = 0.0f64;
 		let mut i = 0;
 		while i < self.probs.len() {
@@ -134,7 +134,7 @@ impl float_prob_freq {
 		}
 	}
 
-	fn select_random_into_buffer(&self, buffer: &[mut u8], buffer_index: uint, n_random: uint) -> uint {
+	fn select_random_into_buffer(&mut self, buffer: &mut [u8], buffer_index: uint, n_random: uint) -> uint {
 		let len = self.probs.len();
 
 		let mut bi = buffer_index;
@@ -162,7 +162,7 @@ impl float_prob_freq {
 		bi
 	}
 
-	fn random(&self, max: f32) -> f32 {
+	fn random(&mut self, max: f32) -> f32 {
 		let one_over_IM = 1f32 / (IM as f32);
 		self.last = (self.last * IA + IC) % IM;
 		max * (self.last as f32) * one_over_IM
