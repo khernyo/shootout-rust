@@ -1,4 +1,4 @@
 Shootout Rust
 =============
 
-[Rust](http://www.rust-lang.org/) implementation of bechmarks from [http://shootout.alioth.debian.org/]()
+[Rust](http://www.rust-lang.org/) implementation of benchmarks from [http://shootout.alioth.debian.org/]()
